@@ -1,0 +1,40 @@
+:root {
+    --ieca-primary: #004B87;
+    --ieca-primary-dark: #003862;
+    --ieca-secondary: #69B3E7;
+    --ieca-secondary-light: #E7F3FB;
+    --ieca-ink: #18344A;
+    --ieca-surface: #F5F9FC;
+    --bs-primary: #004B87;
+    --bs-primary-rgb: 0, 75, 135;
+    --bs-link-color: #004B87;
+    --bs-link-hover-color: #003862;
+}
+
+html, body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ieca-ink); background: var(--ieca-surface); }
+a, .btn-link { color: var(--ieca-primary); }
+a:hover, .btn-link:hover { color: var(--ieca-primary-dark); }
+h1, h2, h3, h4, h5 { color: var(--ieca-primary); font-weight: 650; }
+h1 { padding-bottom: .55rem; border-bottom: 3px solid var(--ieca-secondary); margin-bottom: 1.5rem; }
+
+.btn-primary { --bs-btn-bg: var(--ieca-primary); --bs-btn-border-color: var(--ieca-primary); --bs-btn-hover-bg: var(--ieca-primary-dark); --bs-btn-hover-border-color: var(--ieca-primary-dark); --bs-btn-active-bg: var(--ieca-primary-dark); --bs-btn-active-border-color: var(--ieca-primary-dark); }
+.btn-outline-primary { --bs-btn-color: var(--ieca-primary); --bs-btn-border-color: var(--ieca-primary); --bs-btn-hover-bg: var(--ieca-primary); --bs-btn-hover-border-color: var(--ieca-primary); --bs-btn-active-bg: var(--ieca-primary-dark); }
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-select:focus, .form-check-input:focus { border-color: var(--ieca-secondary); box-shadow: 0 0 0 .22rem rgba(105,179,231,.35); }
+.form-check-input:checked { background-color: var(--ieca-primary); border-color: var(--ieca-primary); }
+
+.card { border-radius: .65rem; }
+.card.shadow-sm { border-top: 4px solid var(--ieca-secondary) !important; }
+.table { --bs-table-hover-bg: rgba(105,179,231,.10); }
+.table thead th { color: var(--ieca-primary); background: var(--ieca-secondary-light); border-bottom: 2px solid var(--ieca-secondary); white-space: nowrap; }
+.table-primary { --bs-table-bg: var(--ieca-secondary-light); --bs-table-striped-bg: var(--ieca-secondary-light); --bs-table-hover-bg: #D8ECF9; --bs-table-border-color: #B9DBF2; }
+.text-bg-primary { background-color: var(--ieca-primary) !important; }
+.alert-success { border-left: 4px solid var(--ieca-primary); }
+
+.content { padding-top: 1.1rem; }
+h1:focus { outline: none; }
+.valid.modified:not([type=checkbox]) { outline: 1px solid #27834a; }
+.invalid { outline: 1px solid #b42318; }
+.validation-message { color: #b42318; }
+.darker-border-checkbox.form-check-input { border-color: #738390; }
+.blazor-error-boundary { background: #b42318; padding: 1rem; color: white; }
+.blazor-error-boundary::after { content: "Ocurrió un error inesperado."; }

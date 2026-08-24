@@ -36,6 +36,7 @@ credentials/
 # ASP.NET configuration that can contain DB/API credentials
 **/appsettings.json
 **/appsettings.*.json
+!**/appsettings.json
 !**/appsettings.example.json
 !**/appsettings.*.example.json
 !**/appsettings.template.json
