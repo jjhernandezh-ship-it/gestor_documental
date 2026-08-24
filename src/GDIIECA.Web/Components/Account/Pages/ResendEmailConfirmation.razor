@@ -34,6 +34,8 @@
 </div>
 
 @code {
+    protected override void OnInitialized() => Input ??= new();
+
     private string? message;
 
     [SupplyParameterFromForm]

@@ -54,6 +54,8 @@
 </div>
 
 @code {
+    protected override void OnInitialized() => Input ??= new();
+
     private IEnumerable<IdentityError>? identityErrors;
 
     [SupplyParameterFromForm]
