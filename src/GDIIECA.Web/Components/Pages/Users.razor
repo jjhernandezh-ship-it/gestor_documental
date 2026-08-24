@@ -1,0 +1,134 @@
+@page "/usuarios"
+@attribute [Authorize(Roles="Administrador")]
+@rendermode InteractiveServer
+@inject IUserService Service
+@inject AuthenticationStateProvider Auth
+@inject IJSRuntime JS
+
+<PageTitle>Usuarios</PageTitle>
+<h1>Administración de usuarios</h1>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <h2 class="h5 mb-3">Crear usuario</h2>
+        <EditForm Model="form" OnValidSubmit="Create" FormName="user-create">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+            <div class="row g-3">
+                <div class="col-md-6 col-xl-3"><label class="form-label">Correo institucional</label><InputText class="form-control" @bind-Value="form.Email" /></div>
+                <div class="col-md-6 col-xl-2"><label class="form-label">Nombre</label><InputText class="form-control" @bind-Value="form.FirstName" /></div>
+                <div class="col-md-6 col-xl-2"><label class="form-label">Apellidos</label><InputText class="form-control" @bind-Value="form.LastName" /></div>
+                <div class="col-md-6 col-xl-2"><label class="form-label">Contraseña temporal</label><InputText type="password" class="form-control" @bind-Value="form.Password" /></div>
+                <div class="col-md-6 col-xl-2"><label class="form-label">Rol</label><InputSelect class="form-select" @bind-Value="form.Role">@foreach (var role in roles) { <option value="@role">@role</option> }</InputSelect></div>
+                <div class="col-md-6 col-xl-1 d-flex align-items-end"><button class="btn btn-primary w-100" disabled="@saving">Crear</button></div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@if (message is not null) { <div class="alert @(isError ? "alert-danger" : "alert-success")">@message</div> }
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+        <tbody>
+        @foreach (var user in result.Items)
+        {
+            <tr>
+                <td>@user.Email</td><td>@user.FirstName @user.LastName</td><td>@string.Join(", ", user.Roles)</td>
+                <td><span class="badge @(user.IsActive ? "text-bg-success" : "text-bg-secondary")">@(user.IsActive ? "Activo" : "Inactivo")</span></td>
+                <td class="text-end"><div class="d-inline-flex gap-2"><button class="btn btn-sm btn-outline-primary" @onclick="() => BeginPasswordReset(user)">Restablecer contraseña</button><button class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success")" @onclick="() => ChangeStatus(user)">@(user.IsActive ? "Desactivar" : "Activar")</button></div></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@if (passwordUser is not null)
+{
+    <div class="card border-primary shadow-sm mt-4">
+        <div class="card-body">
+            <h2 class="h5">Restablecer contraseña</h2>
+            <p>Usuario: <strong>@passwordUser.Email</strong></p>
+            <EditForm Model="passwordForm" OnValidSubmit="ResetPassword" FormName="admin-password-reset">
+                <DataAnnotationsValidator /><ValidationSummary class="text-danger" />
+                <div class="row g-3">
+                    <div class="col-md-5"><label class="form-label">Nueva contraseña temporal</label><InputText type="password" class="form-control" @bind-Value="passwordForm.Password" autocomplete="new-password" /></div>
+                    <div class="col-md-5"><label class="form-label">Confirmar contraseña</label><InputText type="password" class="form-control" @bind-Value="passwordForm.ConfirmPassword" autocomplete="new-password" /></div>
+                    <div class="col-12 d-flex gap-2"><button class="btn btn-primary" disabled="@saving">Guardar contraseña temporal</button><button type="button" class="btn btn-outline-secondary" @onclick="CancelPasswordReset">Cancelar</button></div>
+                </div>
+            </EditForm>
+            <p class="small text-secondary mt-3 mb-0">El usuario deberá cambiar esta contraseña en su siguiente inicio de sesión.</p>
+        </div>
+    </div>
+}
+
+@code {
+    private GDIIECA.Application.Common.PagedResult<UserDto> result = new([], 0, 1, 20);
+    private IReadOnlyList<string> roles = [];
+    private UserForm form = new();
+    private UserDto? passwordUser;
+    private PasswordForm passwordForm = new();
+    private string? message;
+    private bool isError, saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        roles = await Service.ListRolesAsync();
+        if (roles.Count > 0 && !roles.Contains(form.Role)) form.Role = roles.Contains("Usuario") ? "Usuario" : roles[0];
+        await Reload();
+    }
+
+    private async Task Create()
+    {
+        saving = true; message = null;
+        try
+        {
+            var actor = (await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var response = await Service.CreateAsync(new(form.Email, form.FirstName, form.LastName, null, form.Password, [form.Role]), actor);
+            isError = !response.Success; message = response.Success ? "Usuario creado correctamente." : response.Error;
+            if (response.Success) { form = new() { Role = roles.Contains("Usuario") ? "Usuario" : roles.FirstOrDefault() ?? "" }; await Reload(); }
+        }
+        finally { saving = false; }
+    }
+
+    private async Task ChangeStatus(UserDto user)
+    {
+        var action = user.IsActive ? "desactivar" : "activar";
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Deseas {action} al usuario {user.Email}?")) return;
+        try { var actor = (await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier)!; await Service.SetActiveAsync(user.Id, !user.IsActive, actor); isError = false; message = $"Usuario {(user.IsActive ? "desactivado" : "activado")} correctamente."; await Reload(); }
+        catch (Exception ex) { isError = true; message = ex.Message; }
+    }
+
+    private void BeginPasswordReset(UserDto user) { passwordUser = user; passwordForm = new(); message = null; }
+    private void CancelPasswordReset() { passwordUser = null; passwordForm = new(); }
+    private async Task ResetPassword()
+    {
+        if (passwordUser is null) return;
+        saving = true; message = null;
+        try
+        {
+            if (!await JS.InvokeAsync<bool>("confirm", $"¿Deseas restablecer la contraseña de {passwordUser.Email}?")) return;
+            var actor = (await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var response = await Service.ResetPasswordAsync(passwordUser.Id, passwordForm.Password, actor);
+            isError = !response.Success; message = response.Success ? "Contraseña temporal actualizada correctamente." : response.Error;
+            if (response.Success) CancelPasswordReset();
+        }
+        finally { saving = false; }
+    }
+
+    private async Task Reload() => result = await Service.ListAsync(1, 20);
+    private sealed class UserForm
+    {
+        [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.EmailAddress] public string Email { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required] public string FirstName { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required] public string LastName { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.MinLength(12)] public string Password { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required] public string Role { get; set; } = "Usuario";
+    }
+    private sealed class PasswordForm
+    {
+        [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.MinLength(12)] public string Password { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.Compare(nameof(Password), ErrorMessage = "Las contraseñas no coinciden.")] public string ConfirmPassword { get; set; } = "";
+    }
+}

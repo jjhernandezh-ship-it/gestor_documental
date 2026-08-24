@@ -1,0 +1,16 @@
+@page "/"
+@page "/dashboard"
+@attribute [Authorize]
+@inject IDocumentService Documents
+@inject IFolderService Folders
+
+<PageTitle>Dashboard</PageTitle>
+<h1>Dashboard</h1>
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card p-3"><h2>@documents.Count</h2><span>Documentos</span></div></div>
+    <div class="col-md-4"><div class="card p-3"><h2>@folders.Count</h2><span>Carpetas</span></div></div>
+</div>
+<h2>Documentos recientes</h2>
+<table class="table"><thead><tr><th>Nombre</th><th>Versión</th><th>Fecha</th></tr></thead><tbody>@foreach (var item in documents.Take(10)) { <tr><td>@item.Name</td><td>V.@(item.CurrentVersionNumber)</td><td>@item.CreatedAtUtc.ToLocalTime().ToString("g")</td></tr> }</tbody></table>
+
+@code { private IReadOnlyList<DocumentDto> documents = []; private IReadOnlyList<FolderDto> folders = []; protected override async Task OnInitializedAsync() { documents = await Documents.ListAsync(null, null); folders = await Folders.ListAsync(); } }

@@ -1,0 +1,113 @@
+# Build output and IDE state (.NET / Visual Studio)
+**/[Bb]in/
+**/[Oo]bj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Local .NET SDK/cache directories
+.dotnet/
+artifacts/
+
+# Environment variables and secret files
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.template
+!.env.*.template
+secrets.json
+secrets.*.json
+credentials.json
+credentials.*.json
+*.secrets.json
+*.credentials.json
+secret/
+secrets/
+credentials/
+
+# ASP.NET configuration that can contain DB/API credentials
+**/appsettings.json
+**/appsettings.*.json
+!**/appsettings.example.json
+!**/appsettings.*.example.json
+!**/appsettings.template.json
+!**/appsettings.*.template.json
+**/Properties/launchSettings.json
+!**/Properties/launchSettings.example.json
+
+# Local service, deployment and package-feed configuration
+**/serviceDependencies.local.json
+**/serviceDependencies.local.json.user
+**/appsettings.*.local.json
+docker-compose.override.yml
+docker-compose.override.yaml
+NuGet.Config
+nuget.config
+
+# Private keys, certificates and signing material
+*.key
+*.pem
+*.pfx
+*.p12
+*.jks
+*.keystore
+*.kdbx
+*.snk
+*.pvk
+*.asc
+*.gpg
+*.pgp
+*.csr
+*.crt
+*.cer
+*.der
+
+# Tokens, API keys, passwords and connection exports
+*.token
+*.tokens
+*.apikey
+*.api-key
+*.password
+*.passwd
+*.connectionstring
+*.connectionstrings
+*.publishsettings
+*.pubxml.user
+
+# Hash/digest files that may contain credential hashes
+*.hash
+*.hashes
+*.sha1
+*.sha224
+*.sha256
+*.sha384
+*.sha512
+
+# Local databases and database dumps
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.bak
+*.dump
+*.sql.gz
+
+# Logs and local temporary files
+*.log
+logs/
+*.tmp
+*.temp
+
+# OS metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

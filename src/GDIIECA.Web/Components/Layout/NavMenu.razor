@@ -1,0 +1,43 @@
+@implements IDisposable
+@inject NavigationManager NavigationManager
+
+<nav class="institutional-nav">
+    <div class="nav-container">
+        <a class="brand" href="/">Gestor Documental Institucional-IECA</a>
+
+        <AuthorizeView>
+            <Authorized Context="session">
+                <input id="main-menu-toggle" class="menu-toggle" type="checkbox" aria-label="Abrir menú" />
+                <label class="menu-button" for="main-menu-toggle"><span></span><span></span><span></span></label>
+                <div class="menu-content">
+                    <div class="main-links">
+                        <NavLink class="nav-link" href="dashboard">Dashboard</NavLink>
+                        <NavLink class="nav-link" href="documentos">Documentos</NavLink>
+                        <AuthorizeView Roles="Administrador">
+                            <NavLink class="nav-link" href="usuarios">Usuarios</NavLink>
+                        </AuthorizeView>
+                    </div>
+                    <div class="session-links">
+                        <NavLink class="user-link" href="Account/Manage">@session.User.Identity?.Name</NavLink>
+                        <form action="Account/Logout" method="post">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="ReturnUrl" value="Account/Login" />
+                            <button type="submit" class="logout-button">Cerrar sesión</button>
+                        </form>
+                    </div>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="public-actions">
+                    <NavLink class="login-button" href="Account/Login">Iniciar sesión</NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</nav>
+
+@code {
+    protected override void OnInitialized() => NavigationManager.LocationChanged += OnLocationChanged;
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => StateHasChanged();
+    public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
+}

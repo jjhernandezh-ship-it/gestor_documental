@@ -1,0 +1,93 @@
+@page "/documentos/{Id:guid}"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IDocumentService Service
+@inject AuthenticationStateProvider Auth
+
+<h1>@document?.Name</h1>
+
+@if (document is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <EditForm Model="renameForm" OnValidSubmit="Rename" FormName="document-rename" class="card card-body mb-4">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+        <label class="form-label" for="document-name">Nombre del documento</label>
+        <div class="input-group">
+            <InputText id="document-name" class="form-control" @bind-Value="renameForm.Name" />
+            <button class="btn btn-outline-primary" disabled="@savingName">Guardar nombre</button>
+        </div>
+    </EditForm>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @(isError ? "alert-danger" : "alert-success")">@message</div>
+    }
+
+    <p>@document.Description</p>
+    <h2 class="h4">Historial de versiones</h2>
+    <table class="table">
+        <thead><tr><th>Versión</th><th>Archivo</th><th>Tamaño</th><th>Fecha</th></tr></thead>
+        <tbody>
+        @foreach (var version in versions)
+        {
+            <tr><td>V.@version.VersionNumber</td><td><a href="api/files/@version.Id">@version.OriginalFileName</a></td><td>@(version.SizeBytes / 1024) KB</td><td>@version.CreatedAtUtc.ToLocalTime().ToString("g")</td></tr>
+        }
+        </tbody>
+    </table>
+    <EditForm Model="versionForm" OnValidSubmit="AddVersion" FormName="document-version">
+        <InputFile OnChange="e => file = e.File" />
+        <InputText class="form-control mt-2" @bind-Value="versionForm.Comment" placeholder="Comentario del cambio" />
+        <button class="btn btn-primary mt-2" disabled="@(file is null)">Nueva versión</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private DocumentDto? document;
+    private IReadOnlyList<DocumentVersionDto> versions = [];
+    private IBrowserFile? file;
+    private VersionForm versionForm = new();
+    private RenameForm renameForm = new();
+    private string? message;
+    private bool isError, savingName;
+
+    protected override async Task OnParametersSetAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        document = await Service.GetAsync(Id);
+        versions = await Service.VersionsAsync(Id);
+        if (document is not null) renameForm.Name = document.Name;
+    }
+
+    private async Task Rename()
+    {
+        savingName = true; message = null;
+        try
+        {
+            var userId = (await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await Service.RenameAsync(Id, renameForm.Name, userId);
+            document = await Service.GetAsync(Id);
+            isError = false; message = "Nombre actualizado correctamente.";
+        }
+        catch (Exception ex) { isError = true; message = ex.Message; }
+        finally { savingName = false; }
+    }
+
+    private async Task AddVersion()
+    {
+        if (file is null) return;
+        var userId = (await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        await using var stream = file.OpenReadStream(100L * 1024 * 1024);
+        await Service.AddVersionAsync(Id, stream, file.Name, file.ContentType, versionForm.Comment, userId);
+        file = null; versionForm = new();
+        await Reload();
+    }
+
+    private sealed class RenameForm { [System.ComponentModel.DataAnnotations.Required] public string Name { get; set; } = ""; }
+    private sealed class VersionForm { public string? Comment { get; set; } }
+}

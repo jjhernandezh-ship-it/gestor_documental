@@ -1,0 +1,152 @@
+@page "/documentos"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IFolderService FolderService
+@inject IDocumentService DocumentService
+@inject AuthenticationStateProvider Auth
+@inject IJSRuntime JS
+
+<PageTitle>Documentos</PageTitle>
+<h1>Explorador documental</h1>
+
+<div class="input-group mb-3">
+    <input class="form-control" @bind="query" placeholder="Buscar documentos" />
+    <button class="btn btn-outline-primary" @onclick="LoadDocuments">Buscar</button>
+</div>
+
+<nav class="mb-3">
+    <button class="btn btn-link p-0" @onclick="() => Select(null)">Inicio</button>
+    @foreach (var breadcrumb in breadcrumbs)
+    {
+        <span> / </span><button class="btn btn-link p-0" @onclick="() => Select(breadcrumb.Id)">@breadcrumb.Name</button>
+    }
+</nav>
+
+<div class="row">
+    <aside class="col-md-4 border-end">
+        <h2 class="h5">Carpetas</h2>
+        @foreach (var item in ChildFolders)
+        {
+            <div class="d-flex gap-1 mb-1">
+                <button class="btn btn-light text-start flex-grow-1" @onclick="() => Select(item.Id)">📁 @item.Name</button>
+                <AuthorizeView Roles="Administrador" Context="deleteAuth">
+                    <button type="button" class="btn btn-outline-danger" title="Eliminar carpeta" aria-label="Eliminar carpeta @item.Name" @onclick="() => DeleteFolder(item)">Eliminar</button>
+                </AuthorizeView>
+            </div>
+        }
+        <AuthorizeView Roles="Administrador" Context="folderAuth">
+            <EditForm Model="folder" OnValidSubmit="CreateFolder" FormName="folder-create">
+                <div class="input-group mt-3">
+                    <InputText class="form-control" @bind-Value="folder.Name" placeholder="Nueva carpeta" />
+                    <button class="btn btn-primary">Crear</button>
+                </div>
+            </EditForm>
+        </AuthorizeView>
+    </aside>
+    <section class="col-md-8">
+        <h2 class="h5">Contenido</h2>
+        <table class="table">
+            <thead><tr><th>Nombre</th><th>Tipo</th><th>Versión</th></tr></thead>
+            <tbody>
+            @foreach (var document in documents)
+            {
+                <tr><td><a href="documentos/@document.Id">📄 @document.Name</a></td><td>@document.Extension</td><td>V.@document.CurrentVersionNumber</td></tr>
+            }
+            </tbody>
+        </table>
+        @if (currentId.HasValue)
+        {
+            <AuthorizeView Context="uploadAuth">
+                <EditForm Model="upload" OnValidSubmit="Upload" FormName="document-upload">
+                    <div class="card p-3">
+                        <h3 class="h6">Subir documento</h3>
+                        <InputText class="form-control mb-2" @bind-Value="upload.Name" placeholder="Nombre del documento" />
+                        <InputFile OnChange="FileSelected" />
+                        <button disabled="@(file is null)" class="btn btn-primary mt-2">Subir</button>
+                    </div>
+                </EditForm>
+            </AuthorizeView>
+        }
+    </section>
+</div>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger mt-3">@error</div>
+}
+
+@code {
+    private IReadOnlyList<FolderDto> folders = [];
+    private IReadOnlyList<DocumentDto> documents = [];
+    private IReadOnlyList<BreadcrumbDto> breadcrumbs = [];
+    private Guid? currentId;
+    private string? query, error;
+    private FolderForm folder = new();
+    private UploadForm upload = new();
+    private IBrowserFile? file;
+
+    private IEnumerable<FolderDto> ChildFolders => folders.Where(x => x.ParentFolderId == currentId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        folders = await FolderService.ListAsync();
+        await LoadDocuments();
+    }
+
+    private async Task Select(Guid? id)
+    {
+        currentId = id;
+        breadcrumbs = id.HasValue ? await FolderService.BreadcrumbsAsync(id.Value) : [];
+        await LoadDocuments();
+    }
+
+    private async Task LoadDocuments() => documents = await DocumentService.ListAsync(currentId, query);
+    private void FileSelected(InputFileChangeEventArgs e) => file = e.File;
+
+    private async Task CreateFolder()
+    {
+        try
+        {
+            var userId = (await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await FolderService.CreateAsync(folder.Name, currentId, null, null, userId);
+            folder = new();
+            folders = await FolderService.ListAsync();
+            error = null;
+        }
+        catch (Exception ex) { error = ex.Message; }
+    }
+
+    private async Task DeleteFolder(FolderDto item)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"¿Deseas eliminar la carpeta \"{item.Name}\"? También se eliminarán todas sus subcarpetas y los documentos contenidos en ellas.");
+        if (!confirmed) return;
+        try
+        {
+            var userId = (await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await FolderService.DeleteAsync(item.Id, userId);
+            folders = await FolderService.ListAsync();
+            await LoadDocuments();
+            error = null;
+        }
+        catch (Exception ex) { error = ex.Message; }
+    }
+
+    private async Task Upload()
+    {
+        if (file is null || !currentId.HasValue) return;
+        try
+        {
+            var userId = (await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await using var stream = file.OpenReadStream(100L * 1024 * 1024);
+            await DocumentService.CreateAsync(upload.Name, null, currentId.Value, stream, file.Name, file.ContentType, null, userId);
+            upload = new();
+            file = null;
+            await LoadDocuments();
+            error = null;
+        }
+        catch (Exception ex) { error = ex.Message; }
+    }
+
+    private sealed class FolderForm { [System.ComponentModel.DataAnnotations.Required] public string Name { get; set; } = ""; }
+    private sealed class UploadForm { [System.ComponentModel.DataAnnotations.Required] public string Name { get; set; } = ""; }
+}

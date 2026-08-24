@@ -1,0 +1,6 @@
+.page { min-height: 100vh; background: linear-gradient(180deg, #f5f9fc 0, #fff 320px); }
+.site-header { position: sticky; top: 0; z-index: 1000; }
+main { width: 100%; }
+.content { max-width: 1500px; margin: 0 auto; }
+#blazor-error-ui { background: #fff3cd; bottom: 0; box-shadow: 0 -1px 4px rgba(0,0,0,.2); display: none; left: 0; padding: .75rem 1.25rem; position: fixed; width: 100%; z-index: 2000; }
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: .75rem; }
