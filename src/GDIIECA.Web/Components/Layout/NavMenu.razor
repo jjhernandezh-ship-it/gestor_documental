@@ -3,7 +3,10 @@
 
 <nav class="institutional-nav">
     <div class="nav-container">
-        <a class="brand" href="/">Gestor Documental Institucional-IECA</a>
+        <a class="brand" href="/">
+            <img class="brand-mark" src="icons/favicon.png" alt="" />
+            <span>Gestor Documental Institucional-IECA</span>
+        </a>
 
         <AuthorizeView>
             <Authorized Context="session">
@@ -33,6 +36,12 @@
                 </div>
             </NotAuthorized>
         </AuthorizeView>
+
+        <div class="theme-switcher" role="group" aria-label="Tema visual">
+            <button type="button" data-theme-value="light" onclick="window.gdiTheme.set('light')" title="Modo claro" aria-label="Activar modo claro">☀</button>
+            <button type="button" data-theme-value="soft" onclick="window.gdiTheme.set('soft')" title="Modo tenue" aria-label="Activar modo tenue">◐</button>
+            <button type="button" data-theme-value="dark" onclick="window.gdiTheme.set('dark')" title="Modo oscuro" aria-label="Activar modo oscuro">☾</button>
+        </div>
     </div>
 </nav>
 
